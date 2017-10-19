@@ -1,0 +1,20 @@
+{
+  "name": "rdnauction_analysis",
+  "version": "1.0.0",
+  "description": "rdnauction_analysis",
+  "main": "filter_events.js",
+  "scripts": {
+    "start": "node filter_events.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Lefteris",
+  "license": "BSD-3-Clause",
+  "dependencies": {
+    "bignumber": "^1.1.0",
+    "body-parser": "^1.15.2",
+    "ethereumjs-testrpc": "^2.1.0",
+    "ethereumjs-util": "^4.5.0",
+    "solc": "^0.3.6",
+    "web3": "^0.17.0-alpha"
+  }
+}
