@@ -4,13 +4,26 @@ var Web3 = require('web3');
 
 
 // ------------ parameters start ----------------
-var argv = require('minimist')(process.argv.slice(2));
+var argv = require('minimist')(process.argv.slice(2), {string: 'auction-address'});
+
+
+var rpc_host = 'http://localhost';
+var rpc_port = 8545;
+
+if ('rpc-host' in argv) {
+    rpc_host = argv['rpc-host'];
+}
+
+if ('rpc-port' in argv) {
+    rpc_port = argv['rpc-port'];
+}
 
 if (!('auction-address' in argv)) {
     console.log("Need to provide the address of the auction");
     process.exit();
 }
-var auction_address = argv['auction_address'];
+var auction_address = argv['auction-address'];
+auction_address = auction_address.toLowerCase();
 // ------------ parameters end ------------------
 
 
