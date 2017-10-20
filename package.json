@@ -2,9 +2,9 @@
   "name": "rdnauction_analysis",
   "version": "1.0.0",
   "description": "rdnauction_analysis",
-  "main": "filter_events.js",
+  "main": "blockchain_query.js",
   "scripts": {
-    "start": "node filter_events.js",
+    "start": "node blockchain_query.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Lefteris",
