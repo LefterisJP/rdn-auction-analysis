@@ -128,8 +128,7 @@ function extractBids(start_time) {
 		}
             }
         }
-
-        extractBidsLogic(start_time, fromBlock, bids);
+        extractBidsLogic(start_time, executeFromBlock, bids);
     });
 }
 
