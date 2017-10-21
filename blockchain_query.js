@@ -49,7 +49,6 @@ var whitelister = auction.whitelister_address();
 
 
 var fromBlock = 4383437;
-var toBlock = 'latest';
 var sum = new BigNumber(0);
 var threshold = new BigNumber(0.8);
 var bidsfilename = "bids.log";
@@ -72,7 +71,7 @@ function writeDataCache(filename, data, name) {
 
 function extractBidsLogic(start_time, _fromBlock, bids) {
     var i;
-    var bidFilter = auction.BidSubmission({}, {fromBlock: _fromBlock, toBlock: toBlock});
+    var bidFilter = auction.BidSubmission({}, {fromBlock: _fromBlock, toBlock: 'latest'});
 
     bidFilter.get(function (err, bidEvents) {
         if (err) {
@@ -84,7 +83,12 @@ function extractBidsLogic(start_time, _fromBlock, bids) {
 
         for (i = 0; i < bidEvents.length; i++) {
             var bid = bidEvents[i];
-            bids.push({amount: bid.args._amount, from: bid.args._sender, blockNumber: bid.blockNumber});
+            bids.push({
+		amount: bid.args._amount,
+		from: bid.args._sender,
+		blockNumber: bid.blockNumber,
+		time: web3.eth.getBlock(bid.blockNumber).timestamp
+		});
             sum = sum.add(bid.args._amount);
         }
         console.log("Total ETH sent:" + web3.fromWei(sum));
