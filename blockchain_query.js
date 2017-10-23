@@ -30,6 +30,8 @@ auction_address = auction_address.toLowerCase();
 if ('action' in argv) {
     if (argv['action'] == 'extract-bids') {
 	action = 'EXTRACT_BIDS';
+    } else if (argv['action'] == 'process-bids') {
+	action = 'PROCESS_BIDS';
     } else if (argv['action'] == 'extract-transaction') {
 	action = 'EXTRACT_TRANSACTIONS';
     } else {
@@ -54,10 +56,6 @@ var threshold = new BigNumber(0.8);
 var bidsfilename = "bids.log";
 var nwtname = "nonwhitelisted_transactions.log";
 
-function bidToString(bid) {
-    return web3.fromWei(bid.amount.toString(10)) + " | " + bid.from;
-}
-
 function writeDataCache(filename, data, name) {
     fs.writeFile(filename, JSON.stringify(data), function(err) {
         if (err) {
@@ -72,14 +70,14 @@ function writeDataCache(filename, data, name) {
 function extractBidsLogic(start_time, _fromBlock, bids) {
     var i;
     var bidFilter = auction.BidSubmission({}, {fromBlock: _fromBlock, toBlock: 'latest'});
-
     bidFilter.get(function (err, bidEvents) {
         if (err) {
             console.log(err);
             return;
         }
-
+	var duration = Math.floor(Date.now() / 1000) - start_time;
         console.log("Total number of bids so far: " + bidEvents.length);
+	console.log("Bid events querying finished after " + (duration)/60 + " minutes");
 
         for (i = 0; i < bidEvents.length; i++) {
             var bid = bidEvents[i];
@@ -93,25 +91,8 @@ function extractBidsLogic(start_time, _fromBlock, bids) {
         }
         console.log("Total ETH sent:" + web3.fromWei(sum));
 
-        bids.sort(function(a, b) { return b.amount - a.amount;});
-        var new_sum = new BigNumber(0);
-        var highest_amount = bids[0].amount;
-        for (i = 0; i < bids.length; i++) {
-            new_sum = new_sum.add(bids[i].amount);
-            if (new_sum.div(sum).gt(threshold)) {
-                console.log(
-                    "Reached the " + threshold * 100 + "% threshold after " + (i + 1) + " transactions having contributed " + web3.fromWei(new_sum) +" ETH. Highest transaction bid: " + web3.fromWei(highest_amount.toString(10)) + " ETH and lowest bid: " + web3.fromWei(bids[i].amount.toString(10)) + " ETH.");
-                break;
-            }
-        }
-
-        var top_n = 10;
-        console.log("Top " + top_n + " bids are:");
-        for (i = 0; i < top_n; i++) {
-            console.log(bidToString(bids[i]));
-        }
-	var duration = Math.floor(Date.now() / 1000) - start_time;
-	console.log("Ran for " + (duration)/60 + " minutes");
+	duration = Math.floor(Date.now() / 1000) - start_time;
+	console.log("Full bid creation (timestamps) finished after " + (duration)/60 + " minutes");
 	writeDataCache(bidsfilename, bids, "bids");
     });
 }
@@ -124,7 +105,7 @@ function extractBids(start_time) {
             bids = JSON.parse(data);
             if (bids.length > 0) {
                 executeFromBlock = bids[bids.length - 1].blockNumber;
-                console.log("Restored " + bids.length + " bids until block " + (fromBlock - 1) + " from the saved file");
+                console.log("Restored " + bids.length + " bids until block " + (executeFromBlock - 1) + " from the saved file");
 
 		// light clients don't contain anything apart from the args for the events, so this field can also be zero if using a light client
 		if (executeFromBlock == 0) {
@@ -133,6 +114,39 @@ function extractBids(start_time) {
             }
         }
         extractBidsLogic(start_time, executeFromBlock, bids);
+    });
+}
+
+
+function process_bids_logic(bids) {
+    bids.sort(function(a, b) { return b.amount - a.amount;});
+    var new_sum = new BigNumber(0);
+    var i = 0;
+    var highest_amount = bids[0].amount;
+    for (i = 0; i < bids.length; i++) {
+        new_sum = new_sum.add(bids[i].amount);
+        if (new_sum.div(sum).gt(threshold)) {
+            console.log(
+                "Reached the " + threshold * 100 + "% threshold after " + (i + 1) + " transactions having contributed " + web3.fromWei(new_sum) +" ETH. Highest transaction bid: " + web3.fromWei(highest_amount.toString(10)) + " ETH and lowest bid: " + web3.fromWei(bids[i].amount.toString(10)) + " ETH.");
+            break;
+        }
+    }
+
+    var top_n = 10;
+    console.log("Top " + top_n + " bids are:");
+    for (i = 0; i < top_n; i++) {
+        console.log(bids[i]);
+    }
+}
+
+function process_bids() {
+    fs.readFile('bids.log', 'utf8', function (err, data) {
+	if (err) {
+	    console.log("Could not read 'bids.log");
+	    process.exit();
+	}
+	let bids = JSON.parse(data);
+	process_bids_logic(bids);
     });
 }
 
@@ -194,6 +208,8 @@ function getNonWhitelistedTransactions(fromBlock, blocksAhead) {
 var start_time = Math.floor(Date.now() / 1000);
 if (action == 'EXTRACT_BIDS') {
     extractBids(start_time);
+} else if (action == 'PROCESS_BIDS') {
+    process_bids();
 } else if (action == 'EXTRACT_TRANSACTIONS') {
     getNonWhitelistedTransactions(fromBlock, null);
 }
