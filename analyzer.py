@@ -6,6 +6,12 @@ import plotly
 import plotly.graph_objs as go
 
 
+def toEth(x):
+    if isinstance(x, str):
+        x = float(x)
+    return x / (10 ** 18)
+
+
 def tsToDate(ts, formatstr='%Y/%m/%d %H:%M:%S'):
     return datetime.datetime.utcfromtimestamp(ts).strftime(formatstr)
 
@@ -28,19 +34,39 @@ def analyze_transactions(whitelister, data):
     print("Sum is {} ETH from {} transactions and {} unique addresses ".format(sum/(10 ** 18), num, len(addresses)))
 
 
-def analyze_bids(data, plot_online):
+def get_24h_rolling_sum(data, plot_online):
     if plot_online:
         plot = plotly.plot.plot
     else:
         plot = plotly.offline.plot
 
-    trace0 = go.Scatter(
+    data_start_index = 0
+
+    rolling_average_24 = []
+    rolling_sum = 0
+    for x in data:
+        try:
+            rolling_sum += float((x['amount']))
+        except:
+            import pdb
+            pdb.set_trace()
+        while x['time'] - data[data_start_index]['time'] > 86400:
+            rolling_sum -= float(data[data_start_index]['amount'])
+            data_start_index += 1
+
+        rolling_average_24.append((x['time'], rolling_sum))
+
+    bids_data = go.Bar(
         x=[tsToDate(x['time']) for x in data],
-        y=[x['amount'] for x in data],
-        mode='lines',
-        name='lines'
+        y=[toEth(x['amount']) for x in data],
+        name='Bids'
     )
-    plot([trace0], filename='line-mode')
+    rolling_data = go.Scatter(
+        x=[tsToDate(x[0]) for x in rolling_average_24],
+        y=[toEth(x[1]) for x in rolling_average_24],
+        name='24h rolling sum'
+    )
+    plot([bids_data, rolling_data], filename='line-mode')
 
 
 @click.option(
@@ -56,7 +82,7 @@ def analyze_bids(data, plot_online):
 @click.option(
     '--action',
     required=True,
-    type=click.Choice(['analyze-transactions', 'analyze-bids']),
+    type=click.Choice(['analyze-transactions', '24h-rolling-sum']),
     help='The command to run'
 )
 @click.option(
@@ -84,8 +110,8 @@ def main(ctx, action, whitelister, plotly_user, **kwargs):
 
     if action == 'analyze-transactions':
         analyze_transactions(whitelister, data)
-    elif action == 'analyze-bids':
-        analyze_bids(data, kwargs['plot_online'])
+    elif action == '24h-rolling-sum':
+        get_24h_rolling_sum(data, kwargs['plot_online'])
     else:
         print("Action {} is illegal -- should never happen".format(action));
         sys.exit(1)
