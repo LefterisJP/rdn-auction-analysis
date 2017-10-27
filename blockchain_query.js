@@ -29,14 +29,14 @@ auction_address = auction_address.toLowerCase();
 
 if ('action' in argv) {
     if (argv['action'] == 'extract-bids') {
-	action = 'EXTRACT_BIDS';
+        action = 'EXTRACT_BIDS';
     } else if (argv['action'] == 'process-bids') {
-	action = 'PROCESS_BIDS';
+        action = 'PROCESS_BIDS';
     } else if (argv['action'] == 'extract-transaction') {
-	action = 'EXTRACT_TRANSACTIONS';
+        action = 'EXTRACT_TRANSACTIONS';
     } else {
-	console.log('Unrecognized action ' + argv['action'] + 'given');
-	process.exit();
+        console.log('Unrecognized action ' + argv['action'] + 'given');
+        process.exit();
     }
 }
 
@@ -62,8 +62,8 @@ function writeDataCache(filename, data, name) {
             return console.log(err);
         }
         console.log(
-	    "Wrote " + data.length + " " + name + " to " + filename
-	);
+            "Wrote " + data.length + " " + name + " to " + filename
+        );
     });
 }
 
@@ -75,42 +75,43 @@ function extractBidsLogic(start_time, _fromBlock, bids) {
             console.log(err);
             return;
         }
-	var duration = Math.floor(Date.now() / 1000) - start_time;
+        var duration = Math.floor(Date.now() / 1000) - start_time;
         console.log("Total number of bids so far: " + bidEvents.length);
-	console.log("Bid events querying finished after " + (duration)/60 + " minutes");
+        console.log("Bid events querying finished after " + (duration)/60 + " minutes");
 
         for (i = 0; i < bidEvents.length; i++) {
+            // console.log("PROCESSING" + (i + 1) + " / " + bidEvents.length);
             var bid = bidEvents[i];
             bids.push({
-		amount: bid.args._amount,
-		from: bid.args._sender,
-		blockNumber: bid.blockNumber,
-		time: web3.eth.getBlock(bid.blockNumber).timestamp
-		});
+                amount: bid.args._amount,
+                from: bid.args._sender,
+                blockNumber: bid.blockNumber
+                // time: web3.eth.getBlock(bid.blockNumber).timestamp
+            });
             sum = sum.add(bid.args._amount);
         }
         console.log("Total ETH sent:" + web3.fromWei(sum));
 
-	duration = Math.floor(Date.now() / 1000) - start_time;
-	console.log("Full bid creation (timestamps) finished after " + (duration)/60 + " minutes");
-	writeDataCache(bidsfilename, bids, "bids");
+        duration = Math.floor(Date.now() / 1000) - start_time;
+        console.log("Full bid creation (timestamps) finished after " + (duration)/60 + " minutes");
+        writeDataCache(bidsfilename, bids, "bids");
     });
 }
 
 function extractBids(start_time) {
     fs.readFile('bids.log', 'utf8', function (err, data) {
         var bids = [];
-	var executeFromBlock = fromBlock;
+        var executeFromBlock = fromBlock;
         if (!err) {
             bids = JSON.parse(data);
             if (bids.length > 0) {
                 executeFromBlock = bids[bids.length - 1].blockNumber;
                 console.log("Restored " + bids.length + " bids until block " + (executeFromBlock - 1) + " from the saved file");
 
-		// light clients don't contain anything apart from the args for the events, so this field can also be zero if using a light client
-		if (executeFromBlock == 0) {
-		    executeFromBlock = fromBlock;
-		}
+                // light clients don't contain anything apart from the args for the events, so this field can also be zero if using a light client
+                if (executeFromBlock == 0) {
+                    executeFromBlock = fromBlock;
+                }
             }
         }
         extractBidsLogic(start_time, executeFromBlock, bids);
@@ -141,12 +142,12 @@ function process_bids_logic(bids) {
 
 function process_bids() {
     fs.readFile('bids.log', 'utf8', function (err, data) {
-	if (err) {
-	    console.log("Could not read 'bids.log");
-	    process.exit();
-	}
-	let bids = JSON.parse(data);
-	process_bids_logic(bids);
+        if (err) {
+            console.log("Could not read 'bids.log");
+            process.exit();
+        }
+        let bids = JSON.parse(data);
+        process_bids_logic(bids);
     });
 }
 
@@ -167,8 +168,8 @@ function readBlockchain(startBlockNumber, endBlockNumber, transactions) {
     for (var i = startBlockNumber; i <= endBlockNumber; i++) {
         if (i % 100 == 0) {
             console.log("Gathering non-whitelisted transactions. Blocks: "+ i + "/"+ endBlockNumber);
-	    fs.writeFileSync(nwtname, JSON.stringify(transactions));
-	    console.log("IN Progress! -- Wrote " + transactions.length + " transactions to " + nwtname);
+            fs.writeFileSync(nwtname, JSON.stringify(transactions));
+            console.log("IN Progress! -- Wrote " + transactions.length + " transactions to " + nwtname);
         }
         var block = web3.eth.getBlock(i, true);
         if (block != null && block.transactions != null) {
