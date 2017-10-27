@@ -11,6 +11,7 @@ var argv = require('minimist')(process.argv.slice(2), {string: 'auction-address'
 var action = 'EXTRACT_BIDS';
 var rpc_host = 'http://localhost';
 var rpc_port = 8545;
+ var fromBlock = 4383437;
 
 if ('rpc-host' in argv) {
     rpc_host = argv['rpc-host'];
@@ -18,6 +19,10 @@ if ('rpc-host' in argv) {
 
 if ('rpc-port' in argv) {
     rpc_port = argv['rpc-port'];
+}
+
+if ('fromblock' in argv) {
+    fromBlock = argv['fromblock'];
 }
 
 if (!('auction-address' in argv)) {
@@ -50,7 +55,6 @@ var auction = web3.eth.contract(auction_abi).at(auction_address);
 var whitelister = auction.whitelister_address();
 
 
-var fromBlock = 4383437;
 var sum = new BigNumber(0);
 var threshold = new BigNumber(0.8);
 var bidsfilename = "bids.log";
