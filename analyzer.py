@@ -11,6 +11,8 @@ def toEth(x):
         x = float(x)
     return x / (10 ** 18)
 
+kyc_limit = 2.5 * (10 ** 18)
+
 
 def tsToDate(ts, formatstr='%Y/%m/%d %H:%M:%S'):
     return datetime.datetime.utcfromtimestamp(ts).strftime(formatstr)
@@ -34,9 +36,38 @@ def analyze_transactions(whitelister, data):
     print("Sum is {} ETH from {} transactions and {} unique addresses ".format(sum/(10 ** 18), num, len(addresses)))
 
 
+def get_stats(data):
+    all_unique_addr = set()
+    unique_kyced_addr = set()
+    all_sum = 0
+    num_kyced = 0
+    sum_kyced = 0
+    for x in data:
+        amount = float(x['amount'])
+        all_unique_addr.add(x['from'])
+        all_sum += amount
+        if amount > kyc_limit:
+            unique_kyced_addr.add(x['from'])
+            sum_kyced += amount
+            num_kyced += 1
+
+    print(
+"""Stats so far:
+Amount raised:                                        {}
+Unique addresses participating in the auction:        {}
+Unique KYCed addresses participating in the auction:  {}
+Overall Average bid amount:                           {}
+Average bid amount for bids > 2.5 ETH:                {}""".format(
+    toEth(all_sum),
+    len(all_unique_addr),
+    len(unique_kyced_addr),
+    toEth(all_sum / len(data)),
+    toEth(sum_kyced / num_kyced)
+))
+
 def get_24h_rolling_sum(data, plot_online):
     if plot_online:
-        plot = plotly.plot.plot
+        plot = plotly.plotly.plot
     else:
         plot = plotly.offline.plot
 
@@ -82,7 +113,7 @@ def get_24h_rolling_sum(data, plot_online):
 @click.option(
     '--action',
     required=True,
-    type=click.Choice(['analyze-transactions', '24h-rolling-sum']),
+    type=click.Choice(['analyze-transactions', '24h-rolling-sum', 'stats']),
     help='The command to run'
 )
 @click.option(
@@ -112,6 +143,8 @@ def main(ctx, action, whitelister, plotly_user, **kwargs):
         analyze_transactions(whitelister, data)
     elif action == '24h-rolling-sum':
         get_24h_rolling_sum(data, kwargs['plot_online'])
+    elif action == 'stats':
+        get_stats(data)
     else:
         print("Action {} is illegal -- should never happen".format(action));
         sys.exit(1)
