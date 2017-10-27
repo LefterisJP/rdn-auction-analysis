@@ -11,7 +11,8 @@ var argv = require('minimist')(process.argv.slice(2), {string: 'auction-address'
 var action = 'EXTRACT_BIDS';
 var rpc_host = 'http://localhost';
 var rpc_port = 8545;
- var fromBlock = 4383437;
+var fromBlock = 4383437;
+var to_block = 'latest';
 
 if ('rpc-host' in argv) {
     rpc_host = argv['rpc-host'];
@@ -23,6 +24,10 @@ if ('rpc-port' in argv) {
 
 if ('fromblock' in argv) {
     fromBlock = argv['fromblock'];
+}
+
+if ('toblock' in argv) {
+    to_block = argv['toblock'];
 }
 
 if (!('auction-address' in argv)) {
@@ -73,7 +78,7 @@ function writeDataCache(filename, data, name) {
 
 function extractBidsLogic(start_time, _fromBlock, bids) {
     var i;
-    var bidFilter = auction.BidSubmission({}, {fromBlock: _fromBlock, toBlock: 'latest'});
+    var bidFilter = auction.BidSubmission({}, {fromBlock: _fromBlock, toBlock: to_block});
     bidFilter.get(function (err, bidEvents) {
         if (err) {
             console.log(err);
@@ -84,13 +89,17 @@ function extractBidsLogic(start_time, _fromBlock, bids) {
         console.log("Bid events querying finished after " + (duration)/60 + " minutes");
 
         for (i = 0; i < bidEvents.length; i++) {
-            // console.log("PROCESSING" + (i + 1) + " / " + bidEvents.length);
             var bid = bidEvents[i];
+            // Debugging print to figure out why script gets stuck after 2040 events
+            console.log(
+                "PROCESSING " + (i + 1) + "/" + bidEvents.length + " Bidevents." +
+                    "Block Number: " + bid.blockNumber
+            );
             bids.push({
                 amount: bid.args._amount,
                 from: bid.args._sender,
-                blockNumber: bid.blockNumber
-                // time: web3.eth.getBlock(bid.blockNumber).timestamp
+                blockNumber: bid.blockNumber,
+                time: web3.eth.getBlock(bid.blockNumber).timestamp
             });
             sum = sum.add(bid.args._amount);
         }
